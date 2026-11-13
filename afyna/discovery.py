@@ -66,13 +66,13 @@ def discover_files(source_directory: Path) -> FileDiscoveryInventory:
             inventory.errors.append(DiscoveryError(path, error))
             continue
 
-        if not stat_result_is_directory(observed_stat):
+        if not stat.S_ISDIR(observed_stat.st_mode):
             if path == source_directory:
                 error = NotADirectoryError(
                     errno.ENOTDIR, "source is not a directory", str(path)
                 )
                 inventory.errors.append(DiscoveryError(path, error))
-            elif stat_result_is_regular_file(observed_stat):
+            elif stat.S_ISREG(observed_stat.st_mode):
                 inventory.files.append(path)
             continue
 
@@ -110,11 +110,3 @@ def discover_files(source_directory: Path) -> FileDiscoveryInventory:
 
     inventory.files.sort(key=str)
     return inventory
-
-
-def stat_result_is_directory(stat_result: os.stat_result) -> bool:
-    return stat.S_ISDIR(stat_result.st_mode)
-
-
-def stat_result_is_regular_file(stat_result: os.stat_result) -> bool:
-    return stat.S_ISREG(stat_result.st_mode)
