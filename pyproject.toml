@@ -7,6 +7,9 @@ name = "afyna"
 version = "0.0.0"
 description = "An interactive music library organizer for importing messy downloads into an organized collection."
 requires-python = ">=3.13"
+dependencies = [
+    "mutagen==1.48.1",
+]
 
 [project.optional-dependencies]
 test = ["pytest>=8"]
