@@ -39,3 +39,16 @@ Imports preserve file contents byte-for-byte.
 
 afyna is in early development, and is currently not in a usable state. The behavior described above
 is afyna's intended direction.
+
+## 🪉 licensing 🪉
+
+afyna's source code is licensed under [MPL-2.0](LICENSE).
+
+The original logo at [`.github/assets/afyna.png`](.github/assets/afyna.png) is dedicated under [CC0-1.0](https://creativecommons.org/publicdomain/zero/1.0/legalcode).
+Test media is separately licensed and attributed in [tests/fixtures/SOURCES.md](tests/fixtures/SOURCES.md),
+and is not covered by the source-code license declaration.
+
+Mutagen 1.48.1 is independently licensed under GPL-2.0-or-later. Distributing a combined
+application must comply with applicable GPL terms, including relevant license/notice and
+source-availability requirements. afyna's MPL-2.0 source license and package metadata do not
+by themselves satisfy those obligations. Not every distribution arrangement has been legally assessed.

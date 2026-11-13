@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MPL-2.0
+
 """Find file paths without reading file contents or changing source files."""
 
 import errno

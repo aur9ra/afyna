@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MPL-2.0
+
 """Read-only FLAC Vorbis-comment observation through Mutagen."""
 
 import errno

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MPL-2.0
+
 """Read-only file discovery and metadata observation for afyna."""
 
 from .discovery import DiscoveryError, FileDiscoveryInventory, discover_files

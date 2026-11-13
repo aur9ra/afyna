@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77.0.3"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -7,6 +7,8 @@ name = "afyna"
 version = "0.0.0"
 description = "An interactive music library organizer for importing messy downloads into an organized collection."
 requires-python = ">=3.13"
+license = "MPL-2.0"
+license-files = ["LICENSE"]
 dependencies = [
     "mutagen==1.48.1",
 ]

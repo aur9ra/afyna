@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MPL-2.0
+
 """Read-only FLAC metadata observation tests."""
 
 import errno

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MPL-2.0
+
 """File discovery tests using temporary Linux directory trees."""
 
 import errno
