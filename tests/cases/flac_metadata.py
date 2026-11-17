@@ -18,6 +18,7 @@ from afyna import (
     observe_flac_metadata,
 )
 from afyna import flac_metadata
+from tests.support.flac_bytes import vorbis_payload, write_flac
 
 FIXTURE_AUDIO = Path(__file__).resolve().parents[1] / "fixtures" / "audio"
 
@@ -88,101 +89,8 @@ CANONICAL_ENTRIES = {
 }
 
 
-def _streaminfo_payload():
-    payload = bytearray()
-    # state min/max block sizes of 4096
-    payload += (4096).to_bytes(2, "big") * 2
-    # state min/max frame sizes of 0 (unknown value)
-    payload += (0).to_bytes(3, "big") * 2
-
-    # begin construction of audio properties payload
-    sample_rate = 44_100
-    channels = 2
-    bits_per_sample = 16
-    total_samples = 44_100
-
-    # sample rate (20), channels - 1 (3), bit depth - 1 (5), samples (36)
-    sample_rate_bits = sample_rate << (64 - 20)
-    channel_bits = (channels - 1) << (64 - 20 - 3)
-    bit_depth_bits = (bits_per_sample - 1) << 36
-    total_samples_bits = total_samples
-
-    packed = sample_rate_bits | channel_bits | bit_depth_bits | total_samples_bits
-    payload += packed.to_bytes(8, "big")
-
-    # 16 empty bytes for PCM MD5 signature (unset)
-    payload += b"\x00" * 16
-
-    assert len(payload) == 34  # bytes
-    return bytes(payload)
-
-
 def _entry(name, value):
     return f"{name}={value}".encode("utf-8")
-
-
-def _vorbis_payload(raw_entries, vendor=b"test", declared_count=None):
-    # vorbis comments use 32-bit little-endian lengths and counts
-    uint32_bytes = 4
-
-    if declared_count is None:
-        declared_count = len(raw_entries)
-
-    payload = bytearray()
-
-    # vendor string: length + raw bytes
-    vendor_length = len(vendor).to_bytes(uint32_bytes, "little")
-    payload += vendor_length
-    payload += vendor
-
-    # number of comment entries
-    entry_count = declared_count.to_bytes(uint32_bytes, "little")
-    payload += entry_count
-
-    # each comment: length + raw bytes
-    for entry in raw_entries:
-        entry_length = len(entry).to_bytes(uint32_bytes, "little")
-        payload += entry_length
-        payload += entry
-
-    return bytes(payload)
-
-
-def _flac_bytes(comment_payloads):
-    # FLAC metadata block types
-    streaminfo_type = 0
-    vorbis_comment_type = 4
-
-    # metadata block header:
-    # 1 bit: last-block flag
-    # 7 bits: block type
-    # 24 bits: payload length
-
-    last_block_flag = 1 << 7
-    block_length_bytes = 3
-
-    blocks = [(streaminfo_type, _streaminfo_payload())]
-    blocks.extend((vorbis_comment_type, payload) for payload in comment_payloads)
-
-    # native flac file signature
-    data = bytearray(b"fLaC")
-
-    for index, (block_type, payload) in enumerate(blocks):
-        is_last_block = index == len(blocks) - 1
-
-        header_type = block_type | (last_block_flag if is_last_block else 0)
-        block_length = len(payload).to_bytes(block_length_bytes, "big")
-
-        data.append(header_type)
-        data += block_length
-        data += payload
-
-    return bytes(data)
-
-
-def _write_flac(path, *comment_payloads):
-    path.write_bytes(_flac_bytes(comment_payloads))
-    return path
 
 
 def _observe_with_timeout(path, timeout=2.0):
@@ -212,7 +120,7 @@ def test_canonical_fixtures_preserve_known_metadata(filename, expected):
 
 
 def test_preserves_spelling_order_duplicates_conflicts_and_whitespace(tmp_path):
-    payload = _vorbis_payload(
+    payload = vorbis_payload(
         [
             b"title=First",
             b"ALBUM=Same",
@@ -223,7 +131,7 @@ def test_preserves_spelling_order_duplicates_conflicts_and_whitespace(tmp_path):
             b" TITLE =  padded value  ",
         ]
     )
-    path = _write_flac(tmp_path / "tags.flac", payload)
+    path = write_flac(tmp_path / "tags.flac", payload)
     result = observe_flac_metadata(path)
     assert isinstance(result, AudioFileObservation), result
     assert result.metadata_entries == (
@@ -238,22 +146,22 @@ def test_preserves_spelling_order_duplicates_conflicts_and_whitespace(tmp_path):
 
 
 def test_absent_comment_block_is_none(tmp_path):
-    path = _write_flac(tmp_path / "no-comments.flac")
+    path = write_flac(tmp_path / "no-comments.flac")
     result = observe_flac_metadata(path)
     assert isinstance(result, AudioFileObservation), result
     assert result.metadata_entries is None
 
 
 def test_present_empty_comment_block_is_empty_tuple(tmp_path):
-    path = _write_flac(tmp_path / "empty.flac", _vorbis_payload([]))
+    path = write_flac(tmp_path / "empty.flac", vorbis_payload([]))
     result = observe_flac_metadata(path)
     assert isinstance(result, AudioFileObservation), result
     assert result.metadata_entries == ()
 
 
 def test_missing_field_is_not_an_error(tmp_path):
-    payload = _vorbis_payload([_entry("TITLE", "Only")])
-    path = _write_flac(tmp_path / "missing-field.flac", payload)
+    payload = vorbis_payload([_entry("TITLE", "Only")])
+    path = write_flac(tmp_path / "missing-field.flac", payload)
     result = observe_flac_metadata(path)
     assert isinstance(result, AudioFileObservation), result
     assert result.metadata_entries == (AudioFileMetadataEntry("TITLE", "Only"),)
@@ -262,14 +170,14 @@ def test_missing_field_is_not_an_error(tmp_path):
 @pytest.mark.parametrize(
     "payload, exception_type",
     [
-        (_vorbis_payload([b"TITLE=\xff"]), UnicodeDecodeError),
-        (_vorbis_payload([b"A=1"], vendor=b"\xff"), UnicodeDecodeError),
-        (_vorbis_payload([b"TITLE"]), MutagenError),
-        (_vorbis_payload([b"\xc3\xb6=x"]), MutagenError),
+        (vorbis_payload([b"TITLE=\xff"]), UnicodeDecodeError),
+        (vorbis_payload([b"A=1"], vendor=b"\xff"), UnicodeDecodeError),
+        (vorbis_payload([b"TITLE"]), MutagenError),
+        (vorbis_payload([b"\xc3\xb6=x"]), MutagenError),
     ],
 )
 def test_repair_and_decoding_failures(tmp_path, payload, exception_type):
-    path = _write_flac(tmp_path / "bad.flac", payload)
+    path = write_flac(tmp_path / "bad.flac", payload)
     result = observe_flac_metadata(path)
     assert isinstance(result, AudioFileObservationFailure)
     assert isinstance(result.error, exception_type)
@@ -280,14 +188,14 @@ def test_repair_and_decoding_failures(tmp_path, payload, exception_type):
     [b"~=value", b"=value", b"\x01=value"],
 )
 def test_omitted_field_names_are_failures(tmp_path, raw_entry):
-    path = _write_flac(tmp_path / "omitted.flac", _vorbis_payload([raw_entry]))
+    path = write_flac(tmp_path / "omitted.flac", vorbis_payload([raw_entry]))
     result = observe_flac_metadata(path)
     assert isinstance(result, AudioFileObservationFailure)
     assert isinstance(result.error, flac_metadata._IncompleteObservationError)
 
 
 def test_unsupported_tilde_name_reports_incomplete_without_malformed_claim(tmp_path):
-    path = _write_flac(tmp_path / "tilde.flac", _vorbis_payload([b"~=value"]))
+    path = write_flac(tmp_path / "tilde.flac", vorbis_payload([b"~=value"]))
     result = observe_flac_metadata(path)
     assert isinstance(result, AudioFileObservationFailure)
     message = str(result.error).lower()
@@ -296,17 +204,17 @@ def test_unsupported_tilde_name_reports_incomplete_without_malformed_claim(tmp_p
 
 
 def test_declared_and_retained_count_mismatch_fails(tmp_path):
-    payload = _vorbis_payload([b"~=dropped", b"TITLE=kept"], declared_count=2)
-    path = _write_flac(tmp_path / "count-mismatch.flac", payload)
+    payload = vorbis_payload([b"~=dropped", b"TITLE=kept"], declared_count=2)
+    path = write_flac(tmp_path / "count-mismatch.flac", payload)
     result = observe_flac_metadata(path)
     assert isinstance(result, AudioFileObservationFailure)
     assert isinstance(result.error, flac_metadata._IncompleteObservationError)
 
 
 def test_multiple_comment_blocks_are_rejected(tmp_path):
-    first = _vorbis_payload([_entry("TITLE", "First")])
-    second = _vorbis_payload([_entry("TITLE", "Second")])
-    path = _write_flac(tmp_path / "multiple.flac", first, second)
+    first = vorbis_payload([_entry("TITLE", "First")])
+    second = vorbis_payload([_entry("TITLE", "Second")])
+    path = write_flac(tmp_path / "multiple.flac", first, second)
     result = observe_flac_metadata(path)
     assert isinstance(result, AudioFileObservationFailure)
     assert "Vorbis comment blocks" in str(result.error)
@@ -321,7 +229,7 @@ def test_truncated_comment_payload_preserves_mutagen_failure(tmp_path):
         + (10).to_bytes(4, "little")
         + b"TITLE=x"
     )
-    path = _write_flac(tmp_path / "truncated.flac", payload)
+    path = write_flac(tmp_path / "truncated.flac", payload)
     result = observe_flac_metadata(path)
     assert isinstance(result, AudioFileObservationFailure)
     assert isinstance(result.error, MutagenError)
@@ -344,7 +252,7 @@ def test_filesystem_error_instance_is_preserved(tmp_path, monkeypatch):
 
 
 def test_mutagen_error_instance_is_preserved(tmp_path, monkeypatch):
-    path = _write_flac(tmp_path / "any.flac")
+    path = write_flac(tmp_path / "any.flac")
     failure = MutagenError("injected parser failure")
 
     class FailingFLAC:
@@ -359,7 +267,7 @@ def test_mutagen_error_instance_is_preserved(tmp_path, monkeypatch):
 
 @pytest.mark.parametrize("exception_type", [RuntimeError, KeyboardInterrupt])
 def test_unexpected_exceptions_propagate(tmp_path, monkeypatch, exception_type):
-    path = _write_flac(tmp_path / "any.flac")
+    path = write_flac(tmp_path / "any.flac")
     failure = exception_type("injected")
 
     class FailingFLAC:
@@ -445,7 +353,7 @@ def test_success_preserves_source_and_creates_no_output(tmp_path):
 
 
 def test_failure_preserves_source_and_creates_no_output(tmp_path):
-    path = _write_flac(tmp_path / "bad.flac", _vorbis_payload([b"TITLE"]))
+    path = write_flac(tmp_path / "bad.flac", vorbis_payload([b"TITLE"]))
     before_bytes = path.read_bytes()
     before_entries = sorted(entry.name for entry in tmp_path.iterdir())
 
