@@ -9,13 +9,23 @@ from .flac_metadata import (
     AudioFileObservationFailure,
     observe_flac_metadata,
 )
+from .metadata_inventory import (
+    DiscoveryDiagnostic,
+    MetadataObservationInventory,
+    MetadataObservationOccurrence,
+    observe_metadata_inventory,
+)
 
 __all__ = [
     "AudioFileMetadataEntry",
     "AudioFileObservation",
     "AudioFileObservationFailure",
+    "DiscoveryDiagnostic",
     "DiscoveryError",
     "FileDiscoveryInventory",
+    "MetadataObservationInventory",
+    "MetadataObservationOccurrence",
     "discover_files",
     "observe_flac_metadata",
+    "observe_metadata_inventory",
 ]
