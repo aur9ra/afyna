@@ -2,13 +2,13 @@
 
 """Read-only file discovery and metadata observation for afyna."""
 
-from .discovery import DiscoveryError, FileDiscoveryInventory, discover_files
-from .flac_metadata import (
+from .audio.file_formats.flac.metadata import observe_flac_metadata
+from .audio.observation import (
     AudioFileMetadataEntry,
     AudioFileObservation,
     AudioFileObservationFailure,
-    observe_flac_metadata,
 )
+from .discovery import DiscoveryError, FileDiscoveryInventory, discover_files
 from .metadata_inventory import (
     DiscoveryDiagnostic,
     MetadataObservationInventory,

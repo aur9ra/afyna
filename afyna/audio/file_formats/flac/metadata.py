@@ -5,30 +5,16 @@
 import errno
 import os
 import stat
-from dataclasses import dataclass
 from pathlib import Path
 
 from mutagen import MutagenError
 from mutagen.flac import FLAC, VCFLACDict
 
-
-@dataclass(frozen=True)
-class AudioFileMetadataEntry:
-    name: str
-    value: str
-
-
-@dataclass(frozen=True)
-class AudioFileObservation:
-    path: Path
-    metadata_entries: tuple[AudioFileMetadataEntry, ...] | None
-
-
-@dataclass(frozen=True)
-class AudioFileObservationFailure:
-    path: Path
-    error: Exception
-
+from ...observation import (
+    AudioFileMetadataEntry,
+    AudioFileObservation,
+    AudioFileObservationFailure,
+)
 
 _VORBIS_COMMENT_BLOCK_CODE = 4
 

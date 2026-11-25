@@ -17,7 +17,7 @@ dependencies = [
 test = ["pytest>=8"]
 
 [tool.setuptools.packages.find]
-include = ["afyna"]
+include = ["afyna", "afyna.*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests/cases"]

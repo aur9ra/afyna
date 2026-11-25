@@ -17,7 +17,7 @@ from afyna import (
     AudioFileObservationFailure,
     observe_flac_metadata,
 )
-from afyna import flac_metadata
+from afyna.audio.file_formats.flac import metadata as flac_metadata
 from tests.support.flac_bytes import vorbis_payload, write_flac
 
 FIXTURE_AUDIO = Path(__file__).resolve().parents[1] / "fixtures" / "audio"

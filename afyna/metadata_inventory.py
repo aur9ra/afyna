@@ -6,12 +6,9 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
+from .audio.file_formats.flac.metadata import observe_flac_metadata
+from .audio.observation import AudioFileObservation, AudioFileObservationFailure
 from .discovery import FileDiscoveryInventory
-from .flac_metadata import (
-    AudioFileObservation,
-    AudioFileObservationFailure,
-    observe_flac_metadata,
-)
 
 
 @dataclass(frozen=True)
