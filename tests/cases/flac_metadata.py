@@ -18,6 +18,9 @@ from afyna import (
     observe_flac_metadata,
 )
 from afyna.audio.file_formats.flac import metadata as flac_metadata
+from afyna.audio.metadata_formats.vorbis_comment.parsing import (
+    _IncompleteObservationError,
+)
 from tests.support.flac_bytes import vorbis_payload, write_flac
 
 FIXTURE_AUDIO = Path(__file__).resolve().parents[1] / "fixtures" / "audio"
@@ -167,6 +170,19 @@ def test_missing_field_is_not_an_error(tmp_path):
     assert result.metadata_entries == (AudioFileMetadataEntry("TITLE", "Only"),)
 
 
+def test_underdeclared_comment_block_length_is_tolerated(tmp_path):
+    payload = vorbis_payload([b"TITLE=Unchanged"])
+    path = write_flac(tmp_path / "short-block-length.flac", payload)
+    # the final block's three-byte length immediately precedes the payload
+    with path.open("r+b") as fileobj:
+        fileobj.seek(-(len(payload) + 3), os.SEEK_END)
+        fileobj.write((len(payload) - 1).to_bytes(3, "big"))
+
+    result = observe_flac_metadata(path)
+    assert isinstance(result, AudioFileObservation), result
+    assert result.metadata_entries == (AudioFileMetadataEntry("TITLE", "Unchanged"),)
+
+
 @pytest.mark.parametrize(
     "payload, exception_type",
     [
@@ -191,7 +207,7 @@ def test_omitted_field_names_are_failures(tmp_path, raw_entry):
     path = write_flac(tmp_path / "omitted.flac", vorbis_payload([raw_entry]))
     result = observe_flac_metadata(path)
     assert isinstance(result, AudioFileObservationFailure)
-    assert isinstance(result.error, flac_metadata._IncompleteObservationError)
+    assert isinstance(result.error, _IncompleteObservationError)
 
 
 def test_unsupported_tilde_name_reports_incomplete_without_malformed_claim(tmp_path):
@@ -208,7 +224,7 @@ def test_declared_and_retained_count_mismatch_fails(tmp_path):
     path = write_flac(tmp_path / "count-mismatch.flac", payload)
     result = observe_flac_metadata(path)
     assert isinstance(result, AudioFileObservationFailure)
-    assert isinstance(result.error, flac_metadata._IncompleteObservationError)
+    assert isinstance(result.error, _IncompleteObservationError)
 
 
 def test_multiple_comment_blocks_are_rejected(tmp_path):
