@@ -2,6 +2,11 @@
 
 """Read-only file discovery and metadata observation for afyna."""
 
+from .album_candidates import (
+    ExactTitleAlbumCandidate,
+    ExactTitleAlbumCandidateFormationResult,
+    form_exact_title_album_candidates,
+)
 from .audio.file_formats.flac.metadata import observe_flac_metadata
 from .audio.observation import (
     AudioFileMetadataEntry,
@@ -22,10 +27,13 @@ __all__ = [
     "AudioFileObservationFailure",
     "DiscoveryDiagnostic",
     "DiscoveryError",
+    "ExactTitleAlbumCandidate",
+    "ExactTitleAlbumCandidateFormationResult",
     "FileDiscoveryInventory",
     "MetadataObservationInventory",
     "MetadataObservationOccurrence",
     "discover_files",
+    "form_exact_title_album_candidates",
     "observe_flac_metadata",
     "observe_metadata_inventory",
 ]
