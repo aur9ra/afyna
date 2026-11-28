@@ -5,9 +5,7 @@
 from collections.abc import Iterable
 from dataclasses import dataclass
 
-from .audio.metadata_formats.vorbis_comment.characterization import (
-    VorbisCommentCharacterization,
-)
+from .audio.characterization import AudioFileMetadataCharacterization
 
 
 @dataclass(frozen=True)
@@ -20,7 +18,7 @@ class ExactTitleAlbumCandidate:
     """
 
     album_title: str
-    characterizations: tuple[VorbisCommentCharacterization, ...]
+    characterizations: tuple[AudioFileMetadataCharacterization, ...]
 
 
 @dataclass(frozen=True)
@@ -32,11 +30,11 @@ class ExactTitleAlbumCandidateFormationResult:
     """
 
     candidates: tuple[ExactTitleAlbumCandidate, ...]
-    unplaced: tuple[VorbisCommentCharacterization, ...]
+    unplaced: tuple[AudioFileMetadataCharacterization, ...]
 
 
 def form_exact_title_album_candidates(
-    characterizations: Iterable[VorbisCommentCharacterization],
+    characterizations: Iterable[AudioFileMetadataCharacterization],
 ) -> ExactTitleAlbumCandidateFormationResult:
     """Group characterizations by exact non-``None`` stated album title.
 
@@ -45,8 +43,8 @@ def form_exact_title_album_candidates(
     artist evidence do not affect assignment. A characterization without a
     single stated title is retained individually in ``unplaced``.
     """
-    grouped: dict[str, list[VorbisCommentCharacterization]] = {}
-    unplaced: list[VorbisCommentCharacterization] = []
+    grouped: dict[str, list[AudioFileMetadataCharacterization]] = {}
+    unplaced: list[AudioFileMetadataCharacterization] = []
     for characterization in characterizations:
         title = characterization.album_title.single_stated_value
         if title is None:

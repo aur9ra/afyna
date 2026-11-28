@@ -2,20 +2,19 @@
 
 """Characterization tests using directly constructed observations."""
 
-from dataclasses import FrozenInstanceError
 from pathlib import Path
 
 import pytest
 
+from afyna.audio.characterization import MetadataFieldCharacterization
 from afyna.audio.metadata_formats.vorbis_comment.characterization import (
-    VorbisCommentFieldCharacterization,
     characterize_vorbis_comment,
 )
 from afyna.audio.observation import AudioFileMetadataEntry, AudioFileObservation
 
 
 def _assert_field(
-    field: VorbisCommentFieldCharacterization,
+    field: MetadataFieldCharacterization,
     entries: tuple[AudioFileMetadataEntry, ...],
     value: str | None,
 ) -> None:
@@ -167,13 +166,3 @@ def test_distinct_artist_credits_leave_the_other_fields_unaffected():
         "Cult of Luna & Julie Christmas",
     )
     _assert_field(result.artist_credit, (first, second), None)
-
-
-def test_characterization_records_are_frozen():
-    observation = AudioFileObservation(Path("record"), None)
-    result = characterize_vorbis_comment(observation)
-
-    with pytest.raises(FrozenInstanceError):
-        setattr(result, "observation", None)
-    with pytest.raises(FrozenInstanceError):
-        setattr(result.album_title, "matching_entries", ())

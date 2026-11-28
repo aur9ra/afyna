@@ -5,8 +5,11 @@
 from pathlib import Path
 
 from afyna import form_exact_title_album_candidates
+from afyna.audio.characterization import (
+    AudioFileMetadataCharacterization,
+    MetadataFieldCharacterization,
+)
 from afyna.audio.metadata_formats.vorbis_comment.characterization import (
-    VorbisCommentCharacterization,
     characterize_vorbis_comment,
 )
 from afyna.audio.observation import AudioFileMetadataEntry, AudioFileObservation
@@ -18,7 +21,7 @@ def _album(value: str) -> AudioFileMetadataEntry:
 
 def _characterization(
     path: str, *entries: AudioFileMetadataEntry
-) -> VorbisCommentCharacterization:
+) -> AudioFileMetadataCharacterization:
     return characterize_vorbis_comment(AudioFileObservation(Path(path), tuple(entries)))
 
 
@@ -244,24 +247,43 @@ def test_differing_track_artist_credits_do_not_split_shared_title():
         assert actual is expected
 
 
-def test_original_characterizations_and_evidence_are_retained():
-    album_entry = _album("Shared")
-    first_observation = AudioFileObservation(
-        Path("first.flac"),
-        (album_entry, AudioFileMetadataEntry("TITLE", "Track")),
+def test_directly_constructed_characterizations_are_retained():
+    empty_field = MetadataFieldCharacterization(())
+    first_album_entry = AudioFileMetadataEntry("Album Title", "Shared")
+    first = AudioFileMetadataCharacterization(
+        observation=AudioFileObservation(
+            Path("first.audio"),
+            (first_album_entry, AudioFileMetadataEntry("Track Title", "Track")),
+        ),
+        album_title=MetadataFieldCharacterization((first_album_entry,)),
+        album_artist_credit=empty_field,
+        artist_credit=empty_field,
     )
-    first = characterize_vorbis_comment(first_observation)
-    untitled_observation = AudioFileObservation(
-        Path("untitled.flac"), (AudioFileMetadataEntry("TITLE", "Track"),)
+    untitled = AudioFileMetadataCharacterization(
+        observation=AudioFileObservation(
+            Path("untitled.audio"), (AudioFileMetadataEntry("Track Title", "Track"),)
+        ),
+        album_title=empty_field,
+        album_artist_credit=empty_field,
+        artist_credit=empty_field,
     )
-    untitled = characterize_vorbis_comment(untitled_observation)
-    second = _characterization("second.flac", _album("Shared"))
+    second_album_entry = AudioFileMetadataEntry("Album Title", "Shared")
+    second = AudioFileMetadataCharacterization(
+        observation=AudioFileObservation(Path("second.audio"), (second_album_entry,)),
+        album_title=MetadataFieldCharacterization((second_album_entry,)),
+        album_artist_credit=empty_field,
+        artist_credit=empty_field,
+    )
 
     result = form_exact_title_album_candidates([first, untitled, second])
 
+    assert len(result.candidates) == 1
     candidate = result.candidates[0]
+    assert candidate.album_title == "Shared"
+    assert len(candidate.characterizations) == 2
     assert candidate.characterizations[0] is first
     assert candidate.characterizations[1] is second
+    assert len(result.unplaced) == 1
     assert result.unplaced[0] is untitled
 
 
